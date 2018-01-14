@@ -2,6 +2,31 @@
 <!-- Generated with glade 3.20.2 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkAdjustment" id="adj_glide">
+    <property name="upper">127</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_lift">
+    <property name="upper">127</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_press">
+    <property name="upper">127</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_slide">
+    <property name="upper">127</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adj_strike">
+    <property name="upper">127</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkListStore" id="ls_cc_left_slider">
     <columns>
       <!-- column-name COL_ID -->
@@ -44,6 +69,8 @@
   </object>
   <object class="GtkListStore" id="ls_midi_input">
     <columns>
+      <!-- column-name COL_ID -->
+      <column type="gint"/>
       <!-- column-name COL_MAIN -->
       <column type="gchararray"/>
     </columns>
@@ -572,11 +599,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScale">
+              <object class="GtkScale" id="slider_strike">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="orientation">vertical</property>
-                <property name="round_digits">1</property>
+                <property name="adjustment">adj_strike</property>
+                <property name="round_digits">0</property>
+                <property name="digits">0</property>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -584,11 +612,13 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScale">
+              <object class="GtkScale" id="slider_slide">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="orientation">vertical</property>
-                <property name="round_digits">1</property>
+                <property name="adjustment">adj_slide</property>
+                <property name="round_digits">0</property>
+                <property name="digits">0</property>
+                <signal name="value-changed" handler="on_slider_slide_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -596,11 +626,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScale">
+              <object class="GtkScale" id="slider_glide">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="orientation">vertical</property>
-                <property name="round_digits">1</property>
+                <property name="adjustment">adj_glide</property>
+                <property name="round_digits">0</property>
+                <property name="digits">0</property>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -608,11 +639,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScale">
+              <object class="GtkScale" id="slider_press">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="orientation">vertical</property>
-                <property name="round_digits">1</property>
+                <property name="adjustment">adj_press</property>
+                <property name="round_digits">0</property>
+                <property name="digits">0</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -620,11 +652,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkScale">
+              <object class="GtkScale" id="slider_lift">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="orientation">vertical</property>
-                <property name="round_digits">1</property>
+                <property name="adjustment">adj_lift</property>
+                <property name="round_digits">0</property>
+                <property name="digits">0</property>
               </object>
               <packing>
                 <property name="left_attach">4</property>
@@ -663,7 +696,7 @@
                 <child>
                   <object class="GtkCellRendererText" id="midilistrender"/>
                   <attributes>
-                    <attribute name="text">0</attribute>
+                    <attribute name="text">1</attribute>
                   </attributes>
                 </child>
               </object>
@@ -673,7 +706,17 @@
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkButton" id="bt_midi_input_refresh">
+                <property name="label" translatable="yes">Refresh</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="on_bt_midi_input_refresh_clicked" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">1</property>
+              </packing>
             </child>
           </object>
           <packing>

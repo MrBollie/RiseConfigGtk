@@ -27,6 +27,7 @@
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
   </object>
+  <object class="GtkTextBuffer" id="event_buffer"/>
   <object class="GtkListStore" id="ls_cc_left_slider">
     <columns>
       <!-- column-name COL_ID -->
@@ -88,8 +89,6 @@
         <property name="can_focus">False</property>
         <property name="row_spacing">2</property>
         <property name="column_spacing">2</property>
-        <property name="row_homogeneous">True</property>
-        <property name="column_homogeneous">True</property>
         <child>
           <object class="GtkGrid">
             <property name="visible">True</property>
@@ -722,6 +721,18 @@
           <packing>
             <property name="left_attach">0</property>
             <property name="top_attach">2</property>
+            <property name="width">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkTextView" id="event_log">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="buffer">event_buffer</property>
+          </object>
+          <packing>
+            <property name="left_attach">0</property>
+            <property name="top_attach">3</property>
             <property name="width">3</property>
           </packing>
         </child>

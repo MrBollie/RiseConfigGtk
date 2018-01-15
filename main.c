@@ -25,10 +25,10 @@ typedef struct {
     int                         queue_out;      
     GtkListStore                *ls_midi_input;
     GtkTextBuffer               *event_buffer;
-    GtkTextIter                 event_buffer_iter;
 } AppData;
 
 void load_client_list(AppData*);
+gint timeout_callback(gpointer);
  
 int main(int argc, char *argv[])
 {
@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
     );
 
     // Init alsa
-    int err = snd_seq_open(&app_data->seqp, "default", SND_SEQ_OPEN_DUPLEX, 0);
+    int err = snd_seq_open(&app_data->seqp, "default", 
+        SND_SEQ_OPEN_DUPLEX, SND_SEQ_NONBLOCK);
     if (err < 0) {
         g_slice_free(AppData, app_data);
         printf("Cannot connect to ALSA");
@@ -92,6 +93,8 @@ int main(int argc, char *argv[])
         "RiseConfigGtk_in");
     app_data->queue_out = snd_seq_alloc_named_queue(app_data->seqp, 
         "RiseConfigGtk_out");
+
+    g_timeout_add(96, timeout_callback, app_data);
 
     // init done
 
@@ -146,7 +149,9 @@ void on_cb_midi_input_changed(GtkComboBox *combobox, AppData *app_data) {
         app_data->remote_out.client, app_data->remote_out.port);
         
     app_data->is_connected = true;
-    gtk_text_buffer_insert(app_data->event_buffer, &app_data->event_buffer_iter,
+    GtkTextIter bufiter;
+    gtk_text_buffer_get_end_iter(app_data->event_buffer, &bufiter);
+    gtk_text_buffer_insert(app_data->event_buffer, &bufiter,
         "Port connected\n\0", -1);
 }
 
@@ -188,4 +193,13 @@ void load_client_list(AppData *app_data) {
 void on_window_main_destroy()
 {
     gtk_main_quit();
+}
+
+gint timeout_callback(gpointer data) {
+    snd_seq_event_t *ev;
+    while (snd_seq_event_input(((AppData*)data)->seqp, &ev) >= 0) {
+        if (snd_seq_ev_is_note_type(ev)) 
+            printf("Note!\n");
+    }
+    return true;
 }

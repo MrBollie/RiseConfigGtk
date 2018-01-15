@@ -198,7 +198,9 @@ void on_window_main_destroy()
 gint timeout_callback(gpointer data) {
     snd_seq_event_t *ev;
     while (snd_seq_event_input(((AppData*)data)->seqp, &ev) >= 0) {
-        if (snd_seq_ev_is_note_type(ev)) 
+        if (snd_seq_type_check(&ev, SND_SEQ_EVENT_SYSEX)) {
+        }
+        else if (snd_seq_ev_is_note_type(ev)) 
             printf("Note!\n");
     }
     return true;

@@ -1,5 +1,12 @@
 #include "rise_config.h"
 
+bool compare_bytes(const uint8_t *data1, const uint8_t *data2, uint64_t len) {
+    for (uint64_t i ; i < len ; ++i) {
+        if (data1[i] != data2[i]) return false;
+    }
+    return true;
+}
+
 /**
 * Fetches the list of midi clients from alsa and fills the combobox
 * \param app_data application data store
@@ -80,24 +87,55 @@ void on_cb_midi_input_changed(GtkComboBox *combobox, AppData *app_data) {
 
 
 /**
+* Glide slider has been slided.
+*/
+void on_slider_glide_value_changed(GtkRange *scale, AppData *app_data) {
+    if (app_data->surpress_signals) return;
+    double v = gtk_range_get_value(scale);
+    printf( "Glide Value: %.2f\n", v);
+    send_sysex_slider(app_data, 0x17, v);
+}
+
+/**
+* Lift slider has been slided.
+*/
+void on_slider_lift_value_changed(GtkRange *scale, AppData *app_data) {
+    if (app_data->surpress_signals) return;
+    double v = gtk_range_get_value(scale);
+    printf( "Lift Value: %.2f\n", v);
+    send_sysex_slider(app_data, 0x1b, v);
+}
+
+
+/**
+* Press slider has been slided.
+*/
+void on_slider_press_value_changed(GtkRange *scale, AppData *app_data) {
+    if (app_data->surpress_signals) return;
+    double v = gtk_range_get_value(scale);
+    printf( "Press Value: %.2f\n", v);
+    send_sysex_slider(app_data, 0x19, v);
+}
+
+/**
+* Strike slider has been slided.
+*/
+void on_slider_strike_value_changed(GtkRange *scale, AppData *app_data) {
+    if (app_data->surpress_signals) return;
+    double v = gtk_range_get_value(scale);
+    printf( "Strike Value: %.2f\n", v);
+    send_sysex_slider(app_data, 0x1a, v);
+}
+
+
+/**
 * Slide slider has been slided
 */
 void on_slider_slide_value_changed(GtkRange *scale, AppData *app_data) {
+    if (app_data->surpress_signals) return;
     double v = gtk_range_get_value(scale);
     printf( "Slide Value: %.2f\n", v);
-    snd_seq_event_t ev;
-    snd_seq_ev_clear(&ev);
-    snd_seq_ev_set_source(&ev, app_data->local_out.port);
-    //snd_seq_ev_set_dest(&ev, app_data->remote_in.port);
-    snd_seq_ev_set_subs(&ev);
-    snd_seq_ev_set_direct(&ev);
-
-    char data[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3d, 0x18, v, 0xf7 };
-
-    snd_seq_ev_set_sysex(&ev, 9, data);
-
-    snd_seq_event_output(app_data->seqp, &ev);
-    snd_seq_drain_output(app_data->seqp);
+    send_sysex_slider(app_data, 0x18, v);
 }
 
 
@@ -129,16 +167,44 @@ void on_window_main_destroy()
 * \data the app data
 */ 
 void process_midi(AppData* app_data, snd_seq_event_t* ev) {
-        printf("MIDI event %d\n", ev->type);
-        if (ev->type == SND_SEQ_EVENT_SYSEX) {
-            printf("Sysex received\n");
-            for (int i = 0 ; i < ev->data.ext.len ; ++i) {
-                printf("0x%02x ", ((char*)ev->data.ext.ptr)[i]);
-            }
-            printf("\n");
+    printf("MIDI event %d\n", ev->type);
+    if (ev->type == SND_SEQ_EVENT_SYSEX) {
+        printf("Sysex received\n");
+        for (int i = 0 ; i < ev->data.ext.len ; ++i) {
+            printf("%02d: 0x%02x ", i, ((char*)ev->data.ext.ptr)[i]);
         }
-        else if (snd_seq_ev_is_note_type(ev)) 
-            printf("Note!\n");
+        printf("%d bytes.\n", ev->data.ext.len);
+
+        uint8_t *data = (uint8_t*)ev->data.ext.ptr;
+        // If initial sysex
+        if (ev->data.ext.len == 224) {
+            app_data->surpress_signals = true;
+            gtk_range_set_value(app_data->slider_glide, data[105]);
+            gtk_range_set_value(app_data->slider_slide, data[106]);
+            gtk_range_set_value(app_data->slider_press, data[107]);
+            gtk_range_set_value(app_data->slider_strike, data[108]);
+            gtk_range_set_value(app_data->slider_lift, data[148]);
+            app_data->surpress_signals = false;
+        }
+        else if (ev->data.ext.len == 9 
+            && compare_bytes(slider_mask, data, SLIDER_MASK_LEN)) {
+            app_data->surpress_signals = true;
+            switch(data[6]) {
+                case 0x17:
+                    gtk_range_set_value(app_data->slider_glide, data[7]);
+                    break;
+                case 0x18:
+                    gtk_range_set_value(app_data->slider_slide, data[7]);
+                    break;
+                case 0x19:
+                    gtk_range_set_value(app_data->slider_press, data[7]);
+                    break;
+            }
+            app_data->surpress_signals = false;
+        }
+    }
+    else if (snd_seq_ev_is_note_type(ev)) 
+        printf("Note!\n");
 }
 
 
@@ -152,9 +218,29 @@ void send_sysex_init(AppData *app_data) {
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);
 
-    char data[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3f, 0xf7 };
+    uint8_t data[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3f, 0xf7 };
 
     snd_seq_ev_set_sysex(&ev, 7, data);
+
+    snd_seq_event_output(app_data->seqp, &ev);
+    snd_seq_drain_output(app_data->seqp);
+}
+
+
+
+/**
+* Send sysex
+*/
+void send_sysex_slider(AppData *app_data, uint8_t type, uint8_t v) {
+    snd_seq_event_t ev;
+    snd_seq_ev_clear(&ev);
+    snd_seq_ev_set_source(&ev, app_data->local_out.port);
+    snd_seq_ev_set_subs(&ev);
+    snd_seq_ev_set_direct(&ev);
+
+    uint8_t data[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3d, type, v, 0xf7 };
+
+    snd_seq_ev_set_sysex(&ev, 9, data);
 
     snd_seq_event_output(app_data->seqp, &ev);
     snd_seq_drain_output(app_data->seqp);
@@ -172,6 +258,10 @@ int main(int argc, char *argv[])
     AppData         *app_data = g_slice_new(AppData);
 
     gtk_init(&argc, &argv);
+
+    // flag to surpress signals for sysex received messages and subsequently
+    // adjusting sliders.
+    app_data->surpress_signals = false;
     
     // new builder
     builder = gtk_builder_new();
@@ -253,8 +343,6 @@ int main(int argc, char *argv[])
     g_timeout_add(1, on_timeout, app_data);
 
     // init done
-    gtk_adjustment_set_value(slider_slide, 10);
-
     g_object_unref(builder);
  
     g_debug("Entering loop");

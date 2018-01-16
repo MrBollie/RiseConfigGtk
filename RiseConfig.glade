@@ -605,6 +605,7 @@
                 <property name="adjustment">adj_strike</property>
                 <property name="round_digits">0</property>
                 <property name="digits">0</property>
+                <signal name="value-changed" handler="on_slider_strike_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">0</property>
@@ -632,6 +633,7 @@
                 <property name="adjustment">adj_glide</property>
                 <property name="round_digits">0</property>
                 <property name="digits">0</property>
+                <signal name="value-changed" handler="on_slider_glide_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">2</property>
@@ -645,6 +647,7 @@
                 <property name="adjustment">adj_press</property>
                 <property name="round_digits">0</property>
                 <property name="digits">0</property>
+                <signal name="value-changed" handler="on_slider_press_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -658,6 +661,7 @@
                 <property name="adjustment">adj_lift</property>
                 <property name="round_digits">0</property>
                 <property name="digits">0</property>
+                <signal name="value-changed" handler="on_slider_lift_value_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">4</property>

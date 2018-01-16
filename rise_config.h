@@ -14,6 +14,9 @@ typedef enum _bool {
     true
 } bool;
 
+static const uint8_t slider_mask[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3d };
+#define SLIDER_MASK_LEN 6
+
 typedef struct {
     snd_seq_t                   *seqp;
     snd_seq_client_info_t       *dest_client_info;
@@ -33,16 +36,23 @@ typedef struct {
     GtkRange                    *slider_slide;
     GtkRange                    *slider_strike;
     GtkTextBuffer               *event_buffer;
+    bool                        surpress_signals;
 } AppData;
 
+bool compare_bytes(const uint8_t*,const uint8_t*,uint64_t);
 void load_client_list(AppData*);
 void on_bt_midi_input_refresh_clicked(GtkButton*, AppData*);
 void on_cb_midi_input_changed(GtkComboBox*, AppData*);
+void on_slider_glide_value_changed(GtkRange*, AppData*);
+void on_slider_lift_value_changed(GtkRange*, AppData*);
+void on_slider_press_value_changed(GtkRange*, AppData*);
 void on_slider_slide_value_changed(GtkRange*, AppData*);
+void on_slider_strike_value_changed(GtkRange*, AppData*);
 gint on_timeout(gpointer data);
 void on_window_main_destroy();
 void process_midi(AppData*, snd_seq_event_t*);
 void send_sysex_init(AppData*);
+void send_sysex_slider(AppData*, uint8_t, uint8_t);
 
 
 #endif

@@ -85,6 +85,19 @@ void on_cb_midi_input_changed(GtkComboBox *combobox, AppData *app_data) {
 void on_slider_slide_value_changed(GtkRange *scale, AppData *app_data) {
     double v = gtk_range_get_value(scale);
     printf( "Slide Value: %.2f\n", v);
+    snd_seq_event_t ev;
+    snd_seq_ev_clear(&ev);
+    snd_seq_ev_set_source(&ev, app_data->local_out.port);
+    snd_seq_ev_set_source(&ev, app_data->local_out.port);
+    snd_seq_ev_set_subs(&ev);
+    snd_seq_ev_set_direct(&ev);
+
+    char data[] = { 0xf0, 0x00, 0x21, 0x3d, 0x18, v, 0xf7 };
+
+    snd_seq_ev_set_sysex(&ev, sizeof(data), data);
+
+    snd_seq_event_output(app_data->seqp, &ev);
+    snd_seq_drain_output(app_data->seqp);
 }
 
 

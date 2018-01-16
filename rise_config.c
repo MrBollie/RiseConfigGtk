@@ -88,13 +88,13 @@ void on_slider_slide_value_changed(GtkRange *scale, AppData *app_data) {
     snd_seq_event_t ev;
     snd_seq_ev_clear(&ev);
     snd_seq_ev_set_source(&ev, app_data->local_out.port);
-    snd_seq_ev_set_source(&ev, app_data->local_out.port);
+    //snd_seq_ev_set_dest(&ev, app_data->remote_in.port);
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);
 
-    char data[] = { 0xf0, 0x00, 0x21, 0x3d, 0x18, v, 0xf7 };
+    char data[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3d, 0x18, v, 0xf7 };
 
-    snd_seq_ev_set_sysex(&ev, sizeof(data), data);
+    snd_seq_ev_set_sysex(&ev, 9, data);
 
     snd_seq_event_output(app_data->seqp, &ev);
     snd_seq_drain_output(app_data->seqp);
@@ -107,8 +107,7 @@ void on_slider_slide_value_changed(GtkRange *scale, AppData *app_data) {
 */ 
 gint on_timeout(gpointer data) {
     snd_seq_event_t *ev;
-    while (snd_seq_event_input_pending(((AppData*)data)->seqp,0) >0) {
-        snd_seq_event_input(((AppData*)data)->seqp, &ev);
+    while (snd_seq_event_input(((AppData*)data)->seqp, &ev) >= 0) {
         process_midi((AppData*)data, ev);
         snd_seq_free_event(ev);
     }
@@ -130,11 +129,18 @@ void on_window_main_destroy()
 * \data the app data
 */ 
 void process_midi(AppData* app_data, snd_seq_event_t* ev) {
-        if (snd_seq_type_check(ev, SND_SEQ_EVENT_SYSEX)) {
+        printf("MIDI event %d\n", ev->type);
+        if (ev->type == SND_SEQ_EVENT_SYSEX) {
+            printf("Sysex received\n");
+            for (int i = 0 ; i < ev->data.ext.len ; ++i) {
+                printf("0x%02x ", ((char*)ev->data.ext.ptr)[i]);
+            }
+            printf("\n");
         }
         else if (snd_seq_ev_is_note_type(ev)) 
             printf("Note!\n");
 }
+
 
 /**
 * Send sysex
@@ -143,17 +149,17 @@ void send_sysex_init(AppData *app_data) {
     snd_seq_event_t ev;
     snd_seq_ev_clear(&ev);
     snd_seq_ev_set_source(&ev, app_data->local_out.port);
-    snd_seq_ev_set_source(&ev, app_data->local_out.port);
     snd_seq_ev_set_subs(&ev);
     snd_seq_ev_set_direct(&ev);
 
     char data[] = { 0xf0, 0x00, 0x21, 0x10, 0x78, 0x3f, 0xf7 };
 
-    snd_seq_ev_set_sysex(&ev, sizeof(data), data);
+    snd_seq_ev_set_sysex(&ev, 7, data);
 
     snd_seq_event_output(app_data->seqp, &ev);
     snd_seq_drain_output(app_data->seqp);
 }
+
 
 /**
 * main function
@@ -174,10 +180,28 @@ int main(int argc, char *argv[])
     // Get various builder objects
     window = GTK_WIDGET(
         gtk_builder_get_object(builder, "window_main"));
+
     app_data->ls_midi_input = GTK_LIST_STORE(
         gtk_builder_get_object(builder, "ls_midi_input"));
+
     app_data->event_buffer = GTK_TEXT_BUFFER(
         gtk_builder_get_object(builder, "event_buffer"));
+
+    app_data->slider_glide = GTK_RANGE(
+        gtk_builder_get_object(builder, "slider_glide"));
+
+    app_data->slider_lift = GTK_RANGE(
+        gtk_builder_get_object(builder, "slider_lift"));
+
+    app_data->slider_press = GTK_RANGE(
+        gtk_builder_get_object(builder, "slider_press"));
+
+    app_data->slider_slide = GTK_RANGE(
+        gtk_builder_get_object(builder, "slider_slide"));
+
+    app_data->slider_strike = GTK_RANGE(
+        gtk_builder_get_object(builder, "slider_strike"));
+
     gtk_widget_show(window);                
 
     gtk_builder_connect_signals(builder, app_data);
@@ -229,6 +253,7 @@ int main(int argc, char *argv[])
     g_timeout_add(1, on_timeout, app_data);
 
     // init done
+    gtk_adjustment_set_value(slider_slide, 10);
 
     g_object_unref(builder);
  

@@ -27,6 +27,11 @@ typedef struct {
     int                         queue_in;
     int                         queue_out;      
     GtkListStore                *ls_midi_input;
+    GtkRange                    *slider_glide;
+    GtkRange                    *slider_lift;
+    GtkRange                    *slider_press;
+    GtkRange                    *slider_slide;
+    GtkRange                    *slider_strike;
     GtkTextBuffer               *event_buffer;
 } AppData;
 

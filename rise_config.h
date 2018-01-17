@@ -39,7 +39,6 @@ typedef struct {
     bool                        surpress_signals;
 } AppData;
 
-bool compare_bytes(const uint8_t*,const uint8_t*,uint64_t);
 void load_client_list(AppData*);
 void on_bt_midi_input_refresh_clicked(GtkButton*, AppData*);
 void on_cb_midi_input_changed(GtkComboBox*, AppData*);

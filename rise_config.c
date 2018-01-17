@@ -1,12 +1,5 @@
 #include "rise_config.h"
 
-bool compare_bytes(const uint8_t *data1, const uint8_t *data2, uint64_t len) {
-    for (uint64_t i ; i < len ; ++i) {
-        if (data1[i] != data2[i]) return false;
-    }
-    return true;
-}
-
 /**
 * Fetches the list of midi clients from alsa and fills the combobox
 * \param app_data application data store
@@ -187,7 +180,7 @@ void process_midi(AppData* app_data, snd_seq_event_t* ev) {
             app_data->surpress_signals = false;
         }
         else if (ev->data.ext.len == 9 
-            && compare_bytes(slider_mask, data, SLIDER_MASK_LEN)) {
+            && memcmp(slider_mask, data, SLIDER_MASK_LEN)) {
             app_data->surpress_signals = true;
             switch(data[6]) {
                 case 0x17:

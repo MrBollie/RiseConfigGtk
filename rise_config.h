@@ -26,6 +26,8 @@ typedef struct {
     snd_seq_addr_t              local_out;
     snd_seq_addr_t              remote_in;    
     snd_seq_addr_t              remote_out;  
+    snd_seq_port_subscribe_t    *subs_in;
+    snd_seq_port_subscribe_t    *subs_out;
     bool                        is_connected;
     int                         queue_in;
     int                         queue_out;      
@@ -40,6 +42,7 @@ typedef struct {
 } AppData;
 
 void load_client_list(AppData*);
+void winlog(AppData*, char*, int8_t);
 void on_bt_midi_input_refresh_clicked(GtkButton*, AppData*);
 void on_cb_midi_input_changed(GtkComboBox*, AppData*);
 void on_slider_glide_value_changed(GtkRange*, AppData*);

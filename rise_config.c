@@ -31,6 +31,16 @@ void load_client_list(AppData *app_data) {
 
 
 /**
+* Logs data into the little textfield at the bottom of the window
+*/
+void winlog(AppData* app_data, char *buf, int8_t len) {
+    GtkTextIter bufiter;
+    gtk_text_buffer_get_end_iter(app_data->event_buffer, &bufiter);
+    gtk_text_buffer_insert(app_data->event_buffer, &bufiter, buf, len);
+}
+
+
+/**
 *
 */
 void on_bt_midi_input_refresh_clicked(GtkButton *button, AppData *app_data) {
@@ -48,33 +58,48 @@ void on_cb_midi_input_changed(GtkComboBox *combobox, AppData *app_data) {
     gtk_tree_model_get_value((GtkTreeModel*)app_data->ls_midi_input, &iter, 
         COL_ID, &val);
         
+    // Disconnect if it was connected before
     if (app_data->is_connected) {
-        snd_seq_disconnect_to(app_data->seqp, app_data->local_out.port, 
-            app_data->remote_in.client, app_data->remote_in.port
-        );
-        
-        snd_seq_disconnect_from(app_data->seqp, app_data->local_in.port, 
-            app_data->remote_out.client, app_data->remote_out.port
-        );
+
+        // Output
+        snd_seq_unsubscribe_port(app_data->seqp, app_data->subs_out);
+        snd_seq_free_queue(app_data->seqp, app_data->queue_out);
+
+        // Input
+        snd_seq_unsubscribe_port(app_data->seqp, app_data->subs_in);
+        snd_seq_free_queue(app_data->seqp, app_data->queue_in);
+
         app_data->is_connected = false;
     }
     
+    // Output
+    app_data->queue_out = snd_seq_alloc_named_queue(app_data->seqp, 
+        "RiseConfigGtk_out");
     app_data->remote_in.client = g_value_get_int(&val);
     app_data->remote_in.port = 0;
-    snd_seq_connect_to(app_data->seqp, app_data->local_out.port, 
-        app_data->remote_in.client, app_data->remote_in.port);
+    snd_seq_port_subscribe_alloca(&app_data->subs_out);
+    snd_seq_port_subscribe_set_sender(app_data->subs_out, &app_data->local_out);
+    snd_seq_port_subscribe_set_dest(app_data->subs_out, &app_data->remote_in);
+    snd_seq_port_subscribe_set_time_update(app_data->subs_out, 1);
+    snd_seq_port_subscribe_set_queue(app_data->subs_out, app_data->queue_out);
+    snd_seq_subscribe_port(app_data->seqp, app_data->subs_out);
     
+    // Input
+    app_data->queue_in = snd_seq_alloc_named_queue(app_data->seqp, 
+        "RiseConfigGtk_in");
     app_data->remote_out.client = g_value_get_int(&val);
     app_data->remote_out.port = 0;    
-    snd_seq_connect_from(app_data->seqp, app_data->local_in.port, 
-        app_data->remote_out.client, app_data->remote_out.port);
-        
-    app_data->is_connected = true;
-    GtkTextIter bufiter;
-    gtk_text_buffer_get_end_iter(app_data->event_buffer, &bufiter);
-    gtk_text_buffer_insert(app_data->event_buffer, &bufiter,
-        "Port connected\n\0", -1);
+    snd_seq_port_subscribe_alloca(&app_data->subs_in);
+    snd_seq_port_subscribe_set_sender(app_data->subs_in, &app_data->remote_out);
+    snd_seq_port_subscribe_set_dest(app_data->subs_in, &app_data->local_in);
+    snd_seq_port_subscribe_set_time_update(app_data->subs_in, 1);
+    snd_seq_port_subscribe_set_queue(app_data->subs_in, app_data->queue_in);
+    snd_seq_subscribe_port(app_data->seqp, app_data->subs_in);
 
+    // TODO: check if connection was made
+
+    winlog(app_data, "Connected.\n\0", -1);
+    app_data->is_connected = true;
     send_sysex_init(app_data);
 }
 
@@ -161,6 +186,8 @@ void on_window_main_destroy()
 */ 
 void process_midi(AppData* app_data, snd_seq_event_t* ev) {
     printf("MIDI event %d\n", ev->type);
+    printf("MIDI source port %d\n", ev->source.port);
+    printf("MIDI source client %d\n", ev->source.client);
     if (ev->type == SND_SEQ_EVENT_SYSEX) {
         printf("Sysex received\n");
         for (int i = 0 ; i < ev->data.ext.len ; ++i) {
@@ -304,15 +331,15 @@ int main(int argc, char *argv[])
     int in = snd_seq_create_simple_port(
         app_data->seqp, 
         "in", 
-        SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE, 
-        SND_SEQ_PORT_TYPE_MIDI_GENERIC
+        SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
+        SND_SEQ_PORT_TYPE_APPLICATION
     );
 
     int out = snd_seq_create_simple_port(
         app_data->seqp, 
         "out", 
         SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ, 
-        SND_SEQ_PORT_TYPE_MIDI_GENERIC
+        SND_SEQ_PORT_TYPE_APPLICATION
     );
     app_data->is_connected = false;
     
@@ -327,11 +354,6 @@ int main(int argc, char *argv[])
     // Load midi client list initially
     load_client_list(app_data);
     
-    app_data->queue_in = snd_seq_alloc_named_queue(app_data->seqp, 
-        "RiseConfigGtk_in");
-    app_data->queue_out = snd_seq_alloc_named_queue(app_data->seqp, 
-        "RiseConfigGtk_out");
-
     // will be called every ms
     g_timeout_add(1, on_timeout, app_data);
 

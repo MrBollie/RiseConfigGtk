@@ -44,6 +44,7 @@ typedef struct {
 void load_client_list(AppData*);
 void winlog(AppData*, char*, int8_t);
 void on_bt_midi_input_refresh_clicked(GtkButton*, AppData*);
+void on_bt_mpe_toggled(GtkToggleButton*, AppData*);
 void on_cb_midi_input_changed(GtkComboBox*, AppData*);
 void on_slider_glide_value_changed(GtkRange*, AppData*);
 void on_slider_lift_value_changed(GtkRange*, AppData*);
@@ -54,6 +55,7 @@ gint on_timeout(gpointer data);
 void on_window_main_destroy();
 void process_midi(AppData*, snd_seq_event_t*);
 void send_sysex_init(AppData*);
+void send_sysex_mpe_state(AppData*, bool);
 void send_sysex_slider(AppData*, uint8_t, uint8_t);
 
 

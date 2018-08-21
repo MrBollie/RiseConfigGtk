@@ -41,10 +41,18 @@ void winlog(AppData* app_data, char *buf, int8_t len) {
 
 
 /**
-*
+* Refreshes the client list
 */
 void on_bt_midi_input_refresh_clicked(GtkButton *button, AppData *app_data) {
     load_client_list(app_data);
+}
+
+
+/**
+* Activates MPE
+*/
+void on_bt_mpe_toggled(GtkToggleButton *button, AppData *app_data) {
+    send_sysex_mpe_state(app_data, gtk_toggle_button_get_active(button));
 }
 
 
@@ -229,7 +237,7 @@ void process_midi(AppData* app_data, snd_seq_event_t* ev) {
 
 
 /**
-* Send sysex
+* Send sysex initially
 */
 void send_sysex_init(AppData *app_data) {
     snd_seq_event_t ev;
@@ -247,9 +255,29 @@ void send_sysex_init(AppData *app_data) {
 }
 
 
+/**
+* Send sysex for MPE on or off
+*/
+void send_sysex_mpe_state(AppData *app_data, bool state) {
+    snd_seq_event_t ev;
+    snd_seq_ev_clear(&ev);
+    snd_seq_ev_set_source(&ev, app_data->local_out.port);
+    snd_seq_ev_set_subs(&ev);
+    snd_seq_ev_set_direct(&ev);
+
+    uint8_t data[] = { 
+        0xf0, 0x00, 0x21, 0x10, 0x78, 0x3d, 0x0e, (state ? 0x01 : 0), 0xf7 
+    };
+
+    snd_seq_ev_set_sysex(&ev, 9, data);
+
+    snd_seq_event_output(app_data->seqp, &ev);
+    snd_seq_drain_output(app_data->seqp);
+}
+
 
 /**
-* Send sysex
+* Send sysex for sliders
 */
 void send_sysex_slider(AppData *app_data, uint8_t type, uint8_t v) {
     snd_seq_event_t ev;
